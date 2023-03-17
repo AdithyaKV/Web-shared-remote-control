@@ -1,0 +1,92 @@
+<html>
+    <head>
+        <script>
+            const createSocket = (clientId) => {
+                const socket = new WebSocket("ws://192.168.1.27:8021/ws");
+
+                socket.onopen = (event) => {
+                    socket.send(JSON.stringify({
+                        event: 'authentication',
+                        client_id: clientId,
+                        client_mode: 'web',
+                    }))
+                    document.getElementById('status').textContent = `Connected`
+                    document.getElementById('client_id').textContent = clientId
+                }
+                socket.onmessage = (event) => {
+                    const message = JSON.parse(event.data)
+                    if (message.event === 'cpu') {
+                        document.getElementById('value').textContent = message.value
+                    }
+                }
+
+                
+
+                window.addEventListener('unload', (event) => socket.close())
+
+                return socket
+            }
+
+            const disconnectSocket = (socket) => {
+                socket.close()
+                document.getElementById('status').textContent = `Disconnected`
+            }
+
+            document.addEventListener("DOMContentLoaded", () => {
+
+
+                let socket
+
+                const form = document.getElementById('connect_form')
+                form.addEventListener('submit', (event) => {
+                    event.preventDefault()
+                    if (socket) {
+                        disconnectSocket(socket)
+                    }
+                    socket = createSocket(document.getElementById('client_id_input').value)
+                })
+
+                function pointer(e) {
+                    let posX = document.getElementById('input_box').offsetLeft
+                    let posY = document.getElementById('input_box').offsetTop
+                    let X = e.pageX - posX
+                    let Y = e.pageY - posY
+                    let pointer = X.toString() + ',' + Y.toString()
+                    console.log(pointer)
+                    socket.send(JSON.stringify({ event: 'mouse' , pos: pointer }))
+                }
+
+                function kpress(e) {
+                    console.log(e.keyCode)
+                    socket.send(JSON.stringify({event: 'keypress', key: e.keyCode}))
+                }
+
+                const disconnectButton = document.getElementById('disconnect_button')
+                disconnectButton.addEventListener('click', () => disconnectSocket(socket))
+                
+                const beepButton = document.getElementById('beep_button')
+                beepButton.addEventListener('click', () => socket.send(JSON.stringify({ event: 'beep' })))
+
+                const inpBox = document.getElementById('input_box')
+                inpBox.addEventListener('mouseup',function(){ pointer(event); console.log("working..."); })
+                //inpBox.addEventListener('click', () => pointer(event))
+                document.addEventListener('keydown', () => kpress(event))
+                //$( "#input_box" ).click(pointer());
+
+            })
+        </script>
+    </head>
+    <body> 
+        <h1>Status: <span id="status">Disconnected</span></h1>
+        <h1>Client ID: <span id="client_id">?</span></h1>
+        <h1>CPU usage: <span id="value">?</span>%</h1>
+        <h1><button type="button" id="beep_button">Beep</button></h1>
+        
+        <form id="connect_form">
+            <input type="text" id="client_id_input" placeholder="client_id" />
+            <button type="submit">Connect</button>
+            <button type="button" id="disconnect_button">Disconnect</button>
+        </form>
+        <img src="https://external-content.duckduckgo.com/iu/?u=https%3A%2F%2Fimages.freecreatives.com%2Fwp-content%2Fuploads%2F2016%2F02%2FDark-Blue-Background-For-Free-Download.jpg&f=1&nofb=1&ipt=04f094520a72910ee40ae52e6abddeb8939b64ce832b8dc104afd2dee10c06d9&ipo=images" id="input_box" width="1920" height="1080">
+    </body>
+</html>
